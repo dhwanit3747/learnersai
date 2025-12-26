@@ -17,6 +17,7 @@ interface ComicModeProps {
   topic: string;
   panels: Panel[];
   onReset: () => void;
+  onComplete?: () => void;
 }
 
 const characterEmojis: Record<string, Record<string, string>> = {
@@ -39,7 +40,7 @@ const characterEmojis: Record<string, Record<string, string>> = {
   },
 };
 
-export const ComicMode = ({ topic, panels, onReset }: ComicModeProps) => {
+export const ComicMode = ({ topic, panels, onReset, onComplete }: ComicModeProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
   
@@ -58,27 +59,9 @@ export const ComicMode = ({ topic, panels, onReset }: ComicModeProps) => {
     } else {
       setCompleted(true);
       
-      // Award points
-      const pointsEarned = 15;
-      
-      await supabase.from('learning_activities').insert({
-        user_id: user?.id,
-        activity_type: 'comic_read',
-        points_earned: pointsEarned,
-        metadata: { topic, panels: panels.length },
-      });
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_points')
-        .eq('id', user?.id)
-        .single();
-      
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ total_points: profile.total_points + pointsEarned })
-          .eq('id', user?.id);
+      // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete();
       }
     }
   };

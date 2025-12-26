@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Flame, Trophy, BookOpen, Sparkles, FileText, ArrowRight, Clock } from 'lucide-react';
+import { Brain, Flame, Trophy, BookOpen, Sparkles, FileText, ArrowRight, Clock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
@@ -93,6 +93,13 @@ export default function Dashboard() {
 
   const learningModes = [
     {
+      icon: Zap,
+      title: 'Quick Learn',
+      description: 'Get a brief overview of any topic',
+      href: '/learn?mode=brief',
+      color: 'from-cyan-500 to-blue-600',
+    },
+    {
       icon: Brain,
       title: 'Quiz Mode',
       description: 'Test your knowledge with AI-generated questions',
@@ -170,7 +177,7 @@ export default function Dashboard() {
         {/* Quick Start */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Start Learning</h2>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {learningModes.map((mode) => (
               <Link key={mode.title} to={mode.href}>
                 <Card className="border-border bg-card shadow-card hover:shadow-glow transition-all duration-300 hover:-translate-y-1 cursor-pointer group h-full">

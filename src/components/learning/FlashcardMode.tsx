@@ -15,9 +15,10 @@ interface FlashcardModeProps {
   topic: string;
   cards: Flashcard[];
   onReset: () => void;
+  onComplete?: () => void;
 }
 
-export const FlashcardMode = ({ topic, cards, onReset }: FlashcardModeProps) => {
+export const FlashcardMode = ({ topic, cards, onReset, onComplete }: FlashcardModeProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCards, setKnownCards] = useState<number[]>([]);
@@ -50,27 +51,9 @@ export const FlashcardMode = ({ topic, cards, onReset }: FlashcardModeProps) => 
     } else {
       setCompleted(true);
       
-      // Award points
-      const pointsEarned = 5;
-      
-      await supabase.from('learning_activities').insert({
-        user_id: user?.id,
-        activity_type: 'flashcards_reviewed',
-        points_earned: pointsEarned,
-        metadata: { topic, known: knownCards.length + 1, learning: learningCards.length },
-      });
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_points')
-        .eq('id', user?.id)
-        .single();
-      
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ total_points: profile.total_points + pointsEarned })
-          .eq('id', user?.id);
+      // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete();
       }
     }
   };

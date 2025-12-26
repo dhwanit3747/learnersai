@@ -69,6 +69,26 @@ Return ONLY valid JSON in this exact format:
 Characters: professor, student, narrator
 Emotions: happy, thinking, excited, explaining, confused, curious, understanding, amazed`;
       userPrompt = `Create a comic story explaining: ${topic}`;
+    } else if (mode === "brief") {
+      systemPrompt = `You are an educational AI that creates concise, engaging topic overviews. Generate a brief learning summary that covers the essential information about the topic.
+
+Return ONLY valid JSON in this exact format:
+{
+  "title": "The topic title in an engaging way",
+  "summary": "A 2-3 sentence overview of the topic that captures its essence",
+  "keyPoints": [
+    "First key point with a detailed explanation (2-3 sentences)",
+    "Second key point with a detailed explanation (2-3 sentences)",
+    "Third key point with a detailed explanation (2-3 sentences)",
+    "Fourth key point with a detailed explanation (2-3 sentences)",
+    "Fifth key point with a detailed explanation (2-3 sentences)"
+  ],
+  "funFact": "An interesting or surprising fact about the topic that most people don't know",
+  "difficulty": "beginner"
+}
+
+For difficulty, choose: beginner, intermediate, or advanced based on the topic complexity.`;
+      userPrompt = `Create a brief learning overview about: ${topic}`;
     } else {
       throw new Error("Invalid mode specified");
     }

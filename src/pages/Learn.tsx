@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Brain, BookOpen, Sparkles, Search, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Brain, BookOpen, Sparkles, Search, Loader2, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,8 +11,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { QuizMode } from '@/components/learning/QuizMode';
 import { FlashcardMode } from '@/components/learning/FlashcardMode';
 import { ComicMode } from '@/components/learning/ComicMode';
+import { BriefMode } from '@/components/learning/BriefMode';
 
-type LearningMode = 'select' | 'quiz' | 'flashcards' | 'comic';
+type LearningMode = 'select' | 'quiz' | 'flashcards' | 'comic' | 'brief';
 
 export default function Learn() {
   const [searchParams] = useSearchParams();
@@ -33,10 +34,63 @@ export default function Learn() {
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
-    if (modeParam && ['quiz', 'flashcards', 'comic'].includes(modeParam)) {
+    if (modeParam && ['quiz', 'flashcards', 'comic', 'brief'].includes(modeParam)) {
       setMode(modeParam as LearningMode);
     }
   }, [searchParams]);
+
+  const awardPoints = async (points: number, activityType: string) => {
+    if (!user) return;
+    
+    try {
+      // Log the learning activity
+      await supabase.from('learning_activities').insert({
+        user_id: user.id,
+        activity_type: activityType,
+        points_earned: points,
+        metadata: { topic },
+      });
+
+      // Update profile points and streak
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('total_points, current_streak, longest_streak, last_activity_date')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        const today = new Date().toISOString().split('T')[0];
+        const lastActivity = profile.last_activity_date;
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        
+        let newStreak = profile.current_streak || 0;
+        if (lastActivity === yesterday) {
+          newStreak += 1;
+        } else if (lastActivity !== today) {
+          newStreak = 1;
+        }
+
+        const longestStreak = Math.max(newStreak, profile.longest_streak || 0);
+
+        await supabase
+          .from('profiles')
+          .update({
+            total_points: (profile.total_points || 0) + points,
+            current_streak: newStreak,
+            longest_streak: longestStreak,
+            last_activity_date: today,
+          })
+          .eq('id', user.id);
+
+        toast({
+          title: `+${points} Points!`,
+          description: newStreak > 1 ? `🔥 ${newStreak} day streak!` : 'Keep learning to build your streak!',
+        });
+      }
+    } catch (error) {
+      console.error('Error awarding points:', error);
+    }
+  };
 
   const generateContent = async () => {
     if (!topic.trim()) {
@@ -107,7 +161,32 @@ export default function Learn() {
     setTopic('');
   };
 
+  const handleQuizComplete = (score: number, total: number) => {
+    const basePoints = 10;
+    const bonusPoints = score === total ? 5 : 0;
+    awardPoints(basePoints + bonusPoints, 'quiz_completed');
+  };
+
+  const handleFlashcardsComplete = () => {
+    awardPoints(5, 'flashcards_reviewed');
+  };
+
+  const handleComicComplete = () => {
+    awardPoints(15, 'comic_read');
+  };
+
+  const handleBriefComplete = () => {
+    awardPoints(8, 'brief_completed');
+  };
+
   const modes = [
+    {
+      id: 'brief' as const,
+      icon: Zap,
+      title: 'Quick Learn',
+      description: 'Get a brief overview of any topic in minutes',
+      color: 'from-cyan-500 to-blue-600',
+    },
     {
       id: 'quiz' as const,
       icon: Brain,
@@ -151,7 +230,7 @@ export default function Learn() {
               <p className="text-muted-foreground">Select how you want to learn your topic</p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {modes.map((m) => (
                 <Card
                   key={m.id}
@@ -187,11 +266,13 @@ export default function Learn() {
                     {mode === 'quiz' && <Brain className="h-8 w-8 text-white" />}
                     {mode === 'flashcards' && <BookOpen className="h-8 w-8 text-white" />}
                     {mode === 'comic' && <Sparkles className="h-8 w-8 text-white" />}
+                    {mode === 'brief' && <Zap className="h-8 w-8 text-white" />}
                   </div>
                   <h2 className="text-2xl font-bold mb-2">
                     {mode === 'quiz' && 'Quiz Mode'}
                     {mode === 'flashcards' && 'Flashcard Mode'}
                     {mode === 'comic' && 'Comic Story Mode'}
+                    {mode === 'brief' && 'Quick Learn Mode'}
                   </h2>
                   <p className="text-muted-foreground">Enter any topic and our AI will create personalized content for you</p>
                 </div>
@@ -247,9 +328,10 @@ export default function Learn() {
           </div>
         ) : (
           <>
-            {mode === 'quiz' && <QuizMode topic={topic} questions={content.questions} onReset={resetContent} />}
-            {mode === 'flashcards' && <FlashcardMode topic={topic} cards={content.cards} onReset={resetContent} />}
-            {mode === 'comic' && <ComicMode topic={topic} panels={content.panels} onReset={resetContent} />}
+            {mode === 'quiz' && <QuizMode topic={topic} questions={content.questions} onReset={resetContent} onComplete={handleQuizComplete} />}
+            {mode === 'flashcards' && <FlashcardMode topic={topic} cards={content.cards} onReset={resetContent} onComplete={handleFlashcardsComplete} />}
+            {mode === 'comic' && <ComicMode topic={topic} panels={content.panels} onReset={resetContent} onComplete={handleComicComplete} />}
+            {mode === 'brief' && <BriefMode topic={topic} content={content} onReset={resetContent} onComplete={handleBriefComplete} />}
           </>
         )}
       </main>
