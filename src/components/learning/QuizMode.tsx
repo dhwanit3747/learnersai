@@ -17,9 +17,10 @@ interface QuizModeProps {
   topic: string;
   questions: Question[];
   onReset: () => void;
+  onComplete?: (score: number, total: number) => void;
 }
 
-export const QuizMode = ({ topic, questions, onReset }: QuizModeProps) => {
+export const QuizMode = ({ topic, questions, onReset, onComplete }: QuizModeProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -58,28 +59,9 @@ export const QuizMode = ({ topic, questions, onReset }: QuizModeProps) => {
     } else {
       setCompleted(true);
       
-      // Update points
-      const pointsEarned = 10 + (score === questions.length ? 5 : 0);
-      
-      await supabase.from('learning_activities').insert({
-        user_id: user?.id,
-        activity_type: 'quiz_completed',
-        points_earned: pointsEarned,
-        metadata: { topic, score, total: questions.length },
-      });
-
-      // Update profile points
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_points')
-        .eq('id', user?.id)
-        .single();
-      
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ total_points: profile.total_points + pointsEarned })
-          .eq('id', user?.id);
+      // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete(score + (selectedAnswer === currentQuestion.correctIndex ? 1 : 0), questions.length);
       }
     }
   };
