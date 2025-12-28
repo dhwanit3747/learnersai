@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Flame, Trophy, BookOpen, Sparkles, FileText, ArrowRight, Clock, Zap } from 'lucide-react';
+import { Brain, Flame, Trophy, BookOpen, Sparkles, FileText, ArrowRight, Clock, Zap, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
@@ -119,6 +119,13 @@ export default function Dashboard() {
       description: 'Learn through illustrated narratives',
       href: '/learn?mode=comic',
       color: 'from-pink-500 to-rose-600',
+    },
+    {
+      icon: Gamepad2,
+      title: 'AI Games',
+      description: 'Play interactive games to reinforce learning',
+      href: '/learn?mode=games',
+      color: 'from-amber-500 to-orange-600',
     },
   ];
 
