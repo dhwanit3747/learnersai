@@ -89,6 +89,46 @@ Return ONLY valid JSON in this exact format:
 
 For difficulty, choose: beginner, intermediate, or advanced based on the topic complexity.`;
       userPrompt = `Create a brief learning overview about: ${topic}`;
+    } else if (mode === "games") {
+      systemPrompt = `You are an educational AI that creates fun, engaging learning games. Generate exactly 8 game challenges about the given topic. Mix different game types for variety.
+
+Return ONLY valid JSON in this exact format:
+{
+  "games": [
+    {
+      "type": "fill_blank",
+      "question": "Complete this statement: The process of _____ converts light energy into chemical energy.",
+      "answer": "photosynthesis",
+      "hint": "Plants use this process"
+    },
+    {
+      "type": "true_false",
+      "question": "Plants release oxygen during photosynthesis.",
+      "answer": "true"
+    },
+    {
+      "type": "word_scramble",
+      "question": "Unscramble this key term related to the topic:",
+      "answer": "chlorophyll",
+      "hint": "Green pigment in plants"
+    },
+    {
+      "type": "speed_match",
+      "question": "Which of these is correct?",
+      "answer": "Option A",
+      "options": ["Option A", "Option B", "Option C", "Option D"]
+    }
+  ]
+}
+
+Game types to use:
+- fill_blank: User types the missing word
+- true_false: User picks true or false  
+- word_scramble: User unscrambles a word (show scrambled version)
+- speed_match: Multiple choice with time pressure
+
+Make the games educational but fun! Include hints for fill_blank and word_scramble types.`;
+      userPrompt = `Create learning games about: ${topic}`;
     } else {
       throw new Error("Invalid mode specified");
     }
