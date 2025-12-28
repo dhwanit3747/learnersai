@@ -5,24 +5,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { activityApi, profileApi } from '@/lib/api';
 
 interface Profile {
   display_name: string;
-  total_points: number;
-  current_streak: number;
-  longest_streak: number;
+  points: number;
+  streak_days: number;
 }
 
 interface RecentActivity {
   id: string;
-  type: string;
-  topic: string;
-  date: string;
+  activity_type: string;
+  topic_name: string;
+  completed_at: string;
 }
 
 export default function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, profile: authProfile, loading } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
@@ -41,46 +40,21 @@ export default function Dashboard() {
   }, [user]);
 
   const fetchProfile = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('display_name, total_points, current_streak, longest_streak')
-      .eq('id', user?.id)
-      .single();
-    
-    if (data) setProfile(data);
+    try {
+      const data = await profileApi.get();
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
   };
 
   const fetchRecentActivities = async () => {
-    const { data: quizzes } = await supabase
-      .from('quizzes')
-      .select('id, topic_name, created_at')
-      .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-      .limit(3);
-
-    const { data: flashcards } = await supabase
-      .from('flashcard_decks')
-      .select('id, topic_name, created_at')
-      .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-      .limit(3);
-
-    const activities: RecentActivity[] = [
-      ...(quizzes || []).map(q => ({
-        id: q.id,
-        type: 'quiz',
-        topic: q.topic_name,
-        date: q.created_at,
-      })),
-      ...(flashcards || []).map(f => ({
-        id: f.id,
-        type: 'flashcards',
-        topic: f.topic_name,
-        date: f.created_at,
-      })),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
-
-    setRecentActivities(activities);
+    try {
+      const activities = await activityApi.getAll();
+      setRecentActivities(activities.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
   };
 
   if (loading) {
@@ -137,7 +111,7 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="text-gradient">{profile?.display_name || 'Learner'}</span>!
+            Welcome back, <span className="text-gradient">{profile?.display_name || authProfile?.display_name || 'Learner'}</span>!
           </h1>
           <p className="text-muted-foreground">Ready to continue your learning journey?</p>
         </div>
@@ -150,7 +124,7 @@ export default function Dashboard() {
                 <Flame className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{profile?.current_streak || 0}</p>
+                <p className="text-2xl font-bold">{profile?.streak_days || 0}</p>
                 <p className="text-sm text-muted-foreground">Day Streak</p>
               </div>
             </CardContent>
@@ -162,7 +136,7 @@ export default function Dashboard() {
                 <Trophy className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{profile?.total_points || 0}</p>
+                <p className="text-2xl font-bold">{profile?.points || 0}</p>
                 <p className="text-sm text-muted-foreground">Total Points</p>
               </div>
             </CardContent>
@@ -174,8 +148,8 @@ export default function Dashboard() {
                 <Flame className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{profile?.longest_streak || 0}</p>
-                <p className="text-sm text-muted-foreground">Best Streak</p>
+                <p className="text-2xl font-bold">{recentActivities.length}</p>
+                <p className="text-sm text-muted-foreground">Activities</p>
               </div>
             </CardContent>
           </Card>
@@ -218,19 +192,21 @@ export default function Dashboard() {
                 <Card key={activity.id} className="border-border bg-card shadow-card">
                   <CardContent className="p-4 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                      {activity.type === 'quiz' ? (
+                      {activity.activity_type.includes('quiz') ? (
                         <Brain className="h-5 w-5 text-primary" />
+                      ) : activity.activity_type.includes('game') ? (
+                        <Gamepad2 className="h-5 w-5 text-primary" />
                       ) : (
                         <FileText className="h-5 w-5 text-primary" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">{activity.topic}</p>
-                      <p className="text-sm text-muted-foreground capitalize">{activity.type}</p>
+                      <p className="font-medium">{activity.topic_name}</p>
+                      <p className="text-sm text-muted-foreground capitalize">{activity.activity_type.replace('_', ' ')}</p>
                     </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      {new Date(activity.date).toLocaleDateString()}
+                      {new Date(activity.completed_at).toLocaleDateString()}
                     </div>
                   </CardContent>
                 </Card>
