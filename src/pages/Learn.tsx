@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Brain, BookOpen, Sparkles, Search, Loader2, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
+import { Brain, BookOpen, Sparkles, Search, Loader2, ArrowLeft, ArrowRight, Zap, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,8 +12,9 @@ import { QuizMode } from '@/components/learning/QuizMode';
 import { FlashcardMode } from '@/components/learning/FlashcardMode';
 import { ComicMode } from '@/components/learning/ComicMode';
 import { BriefMode } from '@/components/learning/BriefMode';
+import { GameMode } from '@/components/learning/GameMode';
 
-type LearningMode = 'select' | 'quiz' | 'flashcards' | 'comic' | 'brief';
+type LearningMode = 'select' | 'quiz' | 'flashcards' | 'comic' | 'brief' | 'games';
 
 export default function Learn() {
   const [searchParams] = useSearchParams();
@@ -34,7 +35,7 @@ export default function Learn() {
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
-    if (modeParam && ['quiz', 'flashcards', 'comic', 'brief'].includes(modeParam)) {
+    if (modeParam && ['quiz', 'flashcards', 'comic', 'brief', 'games'].includes(modeParam)) {
       setMode(modeParam as LearningMode);
     }
   }, [searchParams]);
@@ -179,6 +180,12 @@ export default function Learn() {
     awardPoints(8, 'brief_completed');
   };
 
+  const handleGamesComplete = (score: number, total: number) => {
+    const basePoints = 12;
+    const bonusPoints = score >= total * 0.8 ? 8 : 0;
+    awardPoints(basePoints + bonusPoints, 'games_completed');
+  };
+
   const modes = [
     {
       id: 'brief' as const,
@@ -207,6 +214,13 @@ export default function Learn() {
       title: 'Comic Story',
       description: 'Learn through fun, illustrated comic-style narratives',
       color: 'from-pink-500 to-rose-600',
+    },
+    {
+      id: 'games' as const,
+      icon: Gamepad2,
+      title: 'AI Games',
+      description: 'Learn through fun timed challenges, word scrambles & more',
+      color: 'from-amber-500 to-orange-600',
     },
   ];
 
@@ -267,12 +281,14 @@ export default function Learn() {
                     {mode === 'flashcards' && <BookOpen className="h-8 w-8 text-white" />}
                     {mode === 'comic' && <Sparkles className="h-8 w-8 text-white" />}
                     {mode === 'brief' && <Zap className="h-8 w-8 text-white" />}
+                    {mode === 'games' && <Gamepad2 className="h-8 w-8 text-white" />}
                   </div>
                   <h2 className="text-2xl font-bold mb-2">
                     {mode === 'quiz' && 'Quiz Mode'}
                     {mode === 'flashcards' && 'Flashcard Mode'}
                     {mode === 'comic' && 'Comic Story Mode'}
                     {mode === 'brief' && 'Quick Learn Mode'}
+                    {mode === 'games' && 'AI Games Mode'}
                   </h2>
                   <p className="text-muted-foreground">Enter any topic and our AI will create personalized content for you</p>
                 </div>
@@ -332,6 +348,7 @@ export default function Learn() {
             {mode === 'flashcards' && <FlashcardMode topic={topic} cards={content.cards} onReset={resetContent} onComplete={handleFlashcardsComplete} />}
             {mode === 'comic' && <ComicMode topic={topic} panels={content.panels} onReset={resetContent} onComplete={handleComicComplete} />}
             {mode === 'brief' && <BriefMode topic={topic} content={content} onReset={resetContent} onComplete={handleBriefComplete} />}
+            {mode === 'games' && <GameMode topic={topic} games={content.games} onReset={resetContent} onComplete={handleGamesComplete} />}
           </>
         )}
       </main>
