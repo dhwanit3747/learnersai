@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { contentApi, activityApi } from '@/lib/api';
 import { QuizMode } from '@/components/learning/QuizMode';
 import { FlashcardMode } from '@/components/learning/FlashcardMode';
 import { ComicMode } from '@/components/learning/ComicMode';
@@ -44,50 +44,11 @@ export default function Learn() {
     if (!user) return;
     
     try {
-      // Log the learning activity
-      await supabase.from('learning_activities').insert({
-        user_id: user.id,
-        activity_type: activityType,
-        points_earned: points,
-        metadata: { topic },
+      await activityApi.log(activityType, topic, points);
+      toast({
+        title: `+${points} Points!`,
+        description: 'Keep learning to build your streak!',
       });
-
-      // Update profile points and streak
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_points, current_streak, longest_streak, last_activity_date')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        const today = new Date().toISOString().split('T')[0];
-        const lastActivity = profile.last_activity_date;
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        
-        let newStreak = profile.current_streak || 0;
-        if (lastActivity === yesterday) {
-          newStreak += 1;
-        } else if (lastActivity !== today) {
-          newStreak = 1;
-        }
-
-        const longestStreak = Math.max(newStreak, profile.longest_streak || 0);
-
-        await supabase
-          .from('profiles')
-          .update({
-            total_points: (profile.total_points || 0) + points,
-            current_streak: newStreak,
-            longest_streak: longestStreak,
-            last_activity_date: today,
-          })
-          .eq('id', user.id);
-
-        toast({
-          title: `+${points} Points!`,
-          description: newStreak > 1 ? `🔥 ${newStreak} day streak!` : 'Keep learning to build your streak!',
-        });
-      }
     } catch (error) {
       console.error('Error awarding points:', error);
     }
@@ -105,46 +66,8 @@ export default function Learn() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-learning-content', {
-        body: { topic, mode },
-      });
-
-      if (error) {
-        if (error.message?.includes('429')) {
-          toast({
-            title: 'Rate limit reached',
-            description: 'Please wait a moment before trying again.',
-            variant: 'destructive',
-          });
-        } else {
-          throw error;
-        }
-        return;
-      }
-
+      const data = await contentApi.generate(topic, mode);
       setContent(data);
-      
-      // Save to database
-      if (mode === 'quiz' && data.questions) {
-        await supabase.from('quizzes').insert({
-          user_id: user?.id,
-          topic_name: topic,
-          questions: data.questions,
-          total_questions: data.questions.length,
-        });
-      } else if (mode === 'flashcards' && data.cards) {
-        await supabase.from('flashcard_decks').insert({
-          user_id: user?.id,
-          topic_name: topic,
-          cards: data.cards,
-        });
-      } else if (mode === 'comic' && data.panels) {
-        await supabase.from('comic_stories').insert({
-          user_id: user?.id,
-          topic_name: topic,
-          panels: data.panels,
-        });
-      }
     } catch (error: any) {
       console.error('Error generating content:', error);
       toast({
