@@ -1,70 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Flame, Trophy, BookOpen, Sparkles, FileText, ArrowRight, Clock, Zap, Gamepad2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Brain, Flame, Trophy, BookOpen, Sparkles, ArrowRight, Zap, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
-import { useAuth } from '@/contexts/AuthContext';
-import { activityApi, profileApi } from '@/lib/api';
-
-interface Profile {
-  display_name: string;
-  points: number;
-  streak_days: number;
-}
-
-interface RecentActivity {
-  id: string;
-  activity_type: string;
-  topic_name: string;
-  completed_at: string;
-}
 
 export default function Dashboard() {
-  const { user, profile: authProfile, loading } = useAuth();
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-      fetchRecentActivities();
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    try {
-      const data = await profileApi.get();
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
-  };
-
-  const fetchRecentActivities = async () => {
-    try {
-      const activities = await activityApi.getAll();
-      setRecentActivities(activities.slice(0, 5));
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen gradient-hero flex items-center justify-center">
-        <Brain className="h-12 w-12 text-primary animate-pulse" />
-      </div>
-    );
-  }
-
   const learningModes = [
     {
       icon: Zap,
@@ -111,9 +51,9 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="text-gradient">{profile?.display_name || authProfile?.display_name || 'Learner'}</span>!
+            Welcome to <span className="text-gradient">Learner's AI</span>!
           </h1>
-          <p className="text-muted-foreground">Ready to continue your learning journey?</p>
+          <p className="text-muted-foreground">Ready to start your learning journey?</p>
         </div>
 
         {/* Stats Cards */}
@@ -124,7 +64,7 @@ export default function Dashboard() {
                 <Flame className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{profile?.streak_days || 0}</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-sm text-muted-foreground">Day Streak</p>
               </div>
             </CardContent>
@@ -136,7 +76,7 @@ export default function Dashboard() {
                 <Trophy className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{profile?.points || 0}</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-sm text-muted-foreground">Total Points</p>
               </div>
             </CardContent>
@@ -148,7 +88,7 @@ export default function Dashboard() {
                 <Flame className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{recentActivities.length}</p>
+                <p className="text-2xl font-bold">0</p>
                 <p className="text-sm text-muted-foreground">Activities</p>
               </div>
             </CardContent>
@@ -158,7 +98,7 @@ export default function Dashboard() {
         {/* Quick Start */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Start Learning</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             {learningModes.map((mode) => (
               <Link key={mode.title} to={mode.href}>
                 <Card className="border-border bg-card shadow-card hover:shadow-glow transition-all duration-300 hover:-translate-y-1 cursor-pointer group h-full">
@@ -175,58 +115,19 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Recent Activity</h2>
+        {/* Get Started Section */}
+        <Card className="border-border bg-card shadow-card">
+          <CardContent className="p-8 text-center">
+            <Brain className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">Ready to Learn?</h3>
+            <p className="text-muted-foreground mb-4">Choose a learning mode above to get started!</p>
             <Link to="/learn">
-              <Button variant="ghost" size="sm">
-                View All <ArrowRight className="ml-1 h-4 w-4" />
+              <Button className="gradient-primary text-primary-foreground">
+                Start Learning <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-          </div>
-          
-          {recentActivities.length > 0 ? (
-            <div className="space-y-3">
-              {recentActivities.map((activity) => (
-                <Card key={activity.id} className="border-border bg-card shadow-card">
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                      {activity.activity_type.includes('quiz') ? (
-                        <Brain className="h-5 w-5 text-primary" />
-                      ) : activity.activity_type.includes('game') ? (
-                        <Gamepad2 className="h-5 w-5 text-primary" />
-                      ) : (
-                        <FileText className="h-5 w-5 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{activity.topic_name}</p>
-                      <p className="text-sm text-muted-foreground capitalize">{activity.activity_type.replace('_', ' ')}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {new Date(activity.completed_at).toLocaleDateString()}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="border-border bg-card shadow-card">
-              <CardContent className="p-8 text-center">
-                <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">No activity yet</h3>
-                <p className="text-muted-foreground mb-4">Start learning to see your progress here!</p>
-                <Link to="/learn">
-                  <Button className="gradient-primary text-primary-foreground">
-                    Start Learning <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

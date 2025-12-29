@@ -3,8 +3,6 @@ import { ArrowLeft, ArrowRight, CheckCircle2, XCircle, Trophy, RotateCcw } from 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
   question: string;
@@ -28,7 +26,6 @@ export const QuizMode = ({ topic, questions, onReset, onComplete }: QuizModeProp
   const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
   const [completed, setCompleted] = useState(false);
   
-  const { user } = useAuth();
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
