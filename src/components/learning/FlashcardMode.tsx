@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, RotateCcw, Check, X, Trophy } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Check, X, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Flashcard {
   front: string;
@@ -25,7 +23,6 @@ export const FlashcardMode = ({ topic, cards, onReset, onComplete }: FlashcardMo
   const [learningCards, setLearningCards] = useState<number[]>([]);
   const [completed, setCompleted] = useState(false);
   
-  const { user } = useAuth();
   const currentCard = cards[currentIndex];
   const progress = ((knownCards.length + learningCards.length) / cards.length) * 100;
 

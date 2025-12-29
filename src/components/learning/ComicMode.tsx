@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, RotateCcw, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Panel {
   title: string;
@@ -44,7 +42,6 @@ export const ComicMode = ({ topic, panels, onReset, onComplete }: ComicModeProps
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
   
-  const { user } = useAuth();
   const currentPanel = panels[currentIndex];
   const progress = ((currentIndex + 1) / panels.length) * 100;
 

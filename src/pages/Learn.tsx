@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Brain, BookOpen, Sparkles, Search, Loader2, ArrowLeft, ArrowRight, Zap, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { contentApi, activityApi } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { QuizMode } from '@/components/learning/QuizMode';
 import { FlashcardMode } from '@/components/learning/FlashcardMode';
 import { ComicMode } from '@/components/learning/ComicMode';
@@ -23,15 +22,7 @@ export default function Learn() {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<any>(null);
   
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
@@ -39,20 +30,6 @@ export default function Learn() {
       setMode(modeParam as LearningMode);
     }
   }, [searchParams]);
-
-  const awardPoints = async (points: number, activityType: string) => {
-    if (!user) return;
-    
-    try {
-      await activityApi.log(activityType, topic, points);
-      toast({
-        title: `+${points} Points!`,
-        description: 'Keep learning to build your streak!',
-      });
-    } catch (error) {
-      console.error('Error awarding points:', error);
-    }
-  };
 
   const generateContent = async () => {
     if (!topic.trim()) {
@@ -66,7 +43,11 @@ export default function Learn() {
 
     setLoading(true);
     try {
-      const data = await contentApi.generate(topic, mode);
+      const { data, error } = await supabase.functions.invoke('generate-learning-content', {
+        body: { topic, mode },
+      });
+
+      if (error) throw error;
       setContent(data);
     } catch (error: any) {
       console.error('Error generating content:', error);
@@ -86,27 +67,38 @@ export default function Learn() {
   };
 
   const handleQuizComplete = (score: number, total: number) => {
-    const basePoints = 10;
-    const bonusPoints = score === total ? 5 : 0;
-    awardPoints(basePoints + bonusPoints, 'quiz_completed');
+    toast({
+      title: `Quiz Complete!`,
+      description: `You scored ${score}/${total}. Great job!`,
+    });
   };
 
   const handleFlashcardsComplete = () => {
-    awardPoints(5, 'flashcards_reviewed');
+    toast({
+      title: 'Flashcards Complete!',
+      description: 'You reviewed all the cards. Keep learning!',
+    });
   };
 
   const handleComicComplete = () => {
-    awardPoints(15, 'comic_read');
+    toast({
+      title: 'Story Complete!',
+      description: 'You finished reading the comic story!',
+    });
   };
 
   const handleBriefComplete = () => {
-    awardPoints(8, 'brief_completed');
+    toast({
+      title: 'Brief Complete!',
+      description: 'You learned the key points about this topic!',
+    });
   };
 
   const handleGamesComplete = (score: number, total: number) => {
-    const basePoints = 12;
-    const bonusPoints = score >= total * 0.8 ? 8 : 0;
-    awardPoints(basePoints + bonusPoints, 'games_completed');
+    toast({
+      title: 'Game Complete!',
+      description: `You scored ${score}/${total}. Well done!`,
+    });
   };
 
   const modes = [
@@ -147,14 +139,6 @@ export default function Learn() {
     },
   ];
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen gradient-hero flex items-center justify-center">
-        <Brain className="h-12 w-12 text-primary animate-pulse" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen gradient-hero">
       <Navbar />
@@ -167,7 +151,7 @@ export default function Learn() {
               <p className="text-muted-foreground">Select how you want to learn your topic</p>
             </div>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
               {modes.map((m) => (
                 <Card
                   key={m.id}
