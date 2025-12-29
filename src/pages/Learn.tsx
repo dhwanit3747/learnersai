@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { QuizMode } from '@/components/learning/QuizMode';
 import { FlashcardMode } from '@/components/learning/FlashcardMode';
 import { ComicMode } from '@/components/learning/ComicMode';
@@ -14,6 +13,8 @@ import { BriefMode } from '@/components/learning/BriefMode';
 import { GameMode } from '@/components/learning/GameMode';
 
 type LearningMode = 'select' | 'quiz' | 'flashcards' | 'comic' | 'brief' | 'games';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export default function Learn() {
   const [searchParams] = useSearchParams();
@@ -43,11 +44,19 @@ export default function Learn() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-learning-content', {
-        body: { topic, mode },
+      const response = await fetch(`${API_URL}/generate-content/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ topic, mode }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to generate content');
+      }
+
+      const data = await response.json();
       setContent(data);
     } catch (error: any) {
       console.error('Error generating content:', error);
